@@ -32,40 +32,45 @@
  * The GNU General Public License gives permission to release a modified version without this exception;
  * this exception also makes it possible to release a modified version which carries forward this exception.
  */
-package ladysnake.requiem.mixin.client.possession.nightvision;
+package ladysnake.requiem.mixin.common.possession.gameplay;
 
-import ladysnake.requiem.api.v1.remnant.RemnantComponent;
-import net.minecraft.client.render.BackgroundRenderer;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.world.ClientWorld;
-import org.objectweb.asm.Opcodes;
-import org.quiltmc.loader.api.minecraft.ClientOnly;
+import ladysnake.requiem.api.v1.possession.PossessionComponent;
+import ladysnake.requiem.common.particle.RequiemParticleTypes;
+import net.minecraft.entity.mob.warden.WardenEntity;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.s2c.play.ParticleS2CPacket;
+import net.minecraft.registry.tag.GameEventTags;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.event.GameEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@ClientOnly
-@Mixin(BackgroundRenderer.class)
-public abstract class BackgroundRendererMixin {
-    @Shadow
-    private static float red;
+import java.util.List;
+
+@Mixin(ServerWorld.class)
+public abstract class ServerWorldMixin {
 
     @Shadow
-    private static float green;
+    public abstract boolean sendToPlayerIfNearby(ServerPlayerEntity player, boolean force, double x, double y, double z, Packet<?> packet);
 
     @Shadow
-    private static float blue;
+    public abstract List<ServerPlayerEntity> getPlayers();
 
-    @Inject(method = "render", slice = @Slice(from=@At(value = "FIELD:LAST", opcode = Opcodes.PUTSTATIC)), at = @At(value = "FIELD", opcode = Opcodes.GETSTATIC))
-    private static void neutralizeBackgroundTint(Camera camera, float tickDelta, ClientWorld world, int i, float f, CallbackInfo ci) {
-        if (RemnantComponent.isIncorporeal(camera.getFocusedEntity())) {
-            float greyscale = red * 0.3f + green * 0.59f + blue * 0.11f;
-            red = Math.max(red, greyscale);
-            green = Math.max(green, greyscale);
-            blue = Math.max(blue, greyscale);
+    @Inject(method = "emitGameEvent(Lnet/minecraft/world/event/GameEvent;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/world/event/GameEvent$Context;)V",at=@At("HEAD"))
+    public void emitGameEvent(GameEvent event, Vec3d pos, GameEvent.Context context, CallbackInfo ci) {
+        if (event.isIn(GameEventTags.WARDEN_CAN_SENSE)) {
+
+            Packet<?> packet = new ParticleS2CPacket(RequiemParticleTypes.SOUND, true, pos.getX() + .5f, pos.getY() + .5f, pos.getZ() + .5f, 0, 0, 0, 0, 1);
+            for (ServerPlayerEntity player : this.getPlayers()) {
+                if (PossessionComponent.get(player).isPossessionOngoing() && PossessionComponent.getHost(player) instanceof WardenEntity && !(context.sourceEntity() instanceof WardenEntity)) {
+                    this.sendToPlayerIfNearby(player, true, pos.getX() + .5f, pos.getY() + .5f, pos.getZ() + .5f, packet);
+                }
+            }
         }
     }
 }
