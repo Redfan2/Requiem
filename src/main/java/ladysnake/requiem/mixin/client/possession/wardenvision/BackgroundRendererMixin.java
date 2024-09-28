@@ -72,23 +72,8 @@ public abstract class BackgroundRendererMixin {
     @Unique
     private static final StatusEffectInstance EFFECT = new StatusEffectInstance(StatusEffects.DARKNESS,1,1);
 
-    /*@Inject(at = @At("TAIL"), method = "render")
-    private static void requiem$render(Camera camera, float tickDelta, ClientWorld world, int viewDistance, float skyDarkness, CallbackInfo ci) {
-        if (camera.getFocusedEntity() instanceof WardenEntity) {
-
-            float factor = 1f;
-            BackgroundRenderer.FogParameters parameters = new BackgroundRenderer.FogParameters(BackgroundRenderer.FogType.FOG_TERRAIN);
-            float vark = MathHelper.lerp(factor, viewDistance, 15.0F);
-            parameters.fogStart = parameters.fogType == BackgroundRenderer.FogType.FOG_SKY ? 0.0F : vark * 0.75F;
-            parameters.fogEnd = vark;
-
-            RenderSystem.setShaderFogStart(parameters.fogStart);
-            RenderSystem.setShaderFogEnd(parameters.fogEnd);
-            RenderSystem.setShaderFogShape(parameters.shape);
-        }
-    }*/
-
-    /**/@Redirect(
+    //Some stuff I thought about for potentially solving this
+    @Redirect(
         at=@At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/render/BackgroundRenderer$FogEffect;fadeAsEffectWearsOff(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/entity/effect/StatusEffectInstance;FF)F"
