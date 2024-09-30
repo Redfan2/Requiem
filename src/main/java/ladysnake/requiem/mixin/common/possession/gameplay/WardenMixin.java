@@ -117,10 +117,6 @@ public abstract class WardenMixin extends HostileEntity implements WardenExtensi
             }
     }
 
-
-
-
-
     @Unique
     public void requiem$syncSensedEntities() {
         if (!this.getWorld().isClient()) {
@@ -133,14 +129,10 @@ public abstract class WardenMixin extends HostileEntity implements WardenExtensi
         }
     }
 
-
-
-
     @Inject(at=@At("TAIL"),method = "increaseAngerAt(Lnet/minecraft/entity/Entity;IZ)V")
     public void syncWhenAngerIncreased(Entity entity, int angerLevel, boolean playSound, CallbackInfo ci) {
-if (this.isEnemy(entity)) {
-    this.requiem$syncSensedEntities();
-}
-}
-
+        if (this.isEnemy(entity)) {
+            this.requiem$syncSensedEntities();
+        }
+    }
 }
