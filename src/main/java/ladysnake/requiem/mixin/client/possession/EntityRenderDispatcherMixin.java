@@ -104,11 +104,12 @@ public abstract class EntityRenderDispatcherMixin {
     public void notRenderNonDetectedByWarden(Entity entity, Frustum frustum, double x, double y, double z, CallbackInfoReturnable<Boolean> info) {
 
         /**/if (entity instanceof WardenEntity) {
+            //TODO: by:Redfan2: Fix posessed warden itself not rendering
             info.setReturnValue(true);
         }
 
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
-        //TODO: by:Redfan2: Fix posessed warden itself not rendering
+
         if (requiem_camerasPossessed != null) {
             //Check for posession
             if (requiem_camerasPossessed instanceof WardenEntity) {

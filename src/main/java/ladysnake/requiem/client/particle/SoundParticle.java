@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses>.
  *
- * Linking this mod statically or dynamically with second
+ * Linking this mod statically or dynamically with other
  * modules is making a combined work based on this mod.
  * Thus, the terms and conditions of the GNU General Public License cover the whole combination.
  *
@@ -25,7 +25,7 @@
  * and with code included in the standard release of Minecraft under All Rights Reserved (or
  * modified versions of such code, with unchanged license).
  * You may copy and distribute such a system following the terms of the GNU GPL for this mod
- * and the licenses of the second code concerned.
+ * and the licenses of the other code concerned.
  *
  * Note that people who make modified versions of this mod are not obligated to grant
  * this special exception for their modified versions; it is their choice whether to do so.
@@ -36,7 +36,9 @@ package ladysnake.requiem.client.particle;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import ladysnake.requiem.api.v1.possession.PossessionComponent;
 import ladysnake.requiem.client.render.RequiemRenderPhases;
+import ladysnake.requiem.common.particle.RequiemSoundParticleEffect;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleFactory;
@@ -47,7 +49,6 @@ import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.particle.DefaultParticleType;
 import net.minecraft.util.math.Axis;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -56,24 +57,38 @@ import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 import org.quiltmc.loader.api.minecraft.ClientOnly;
 
+import java.awt.*;
+
 public class SoundParticle extends SpriteBillboardParticle {
-    private final SpriteProvider spriteProvider;
-
+    public final SpriteProvider spriteProvider;
+    private float red;
+    private float green;
+    private float blue;
+    //private final ParticleTextureSheet sheet;
     //TODO: by:Redfan2: think about which VertexConsumer to use to not conflict with Darkness fog effect
-    private static final VertexConsumerProvider.Immediate soundVertexConsumerProvider =  MinecraftClient.getInstance().getBufferBuilders().getEntityVertexConsumers();
+    private static final VertexConsumerProvider.Immediate soundVertexConsumerProvider = MinecraftClient.getInstance().getBufferBuilders().getEntityVertexConsumers();
+    //Tessellator.getInstance().getBufferBuilder()
+    //Doesnt render: Investigate: VertexConsumerProvider.immediate(new BufferBuilder(RequiemRenderPhases.GHOST_PARTICLE_LAYER.getExpectedBufferSize()));
 
-    public SoundParticle(ClientWorld world, double x, double y, double z, double velocityX, double velocityY, double velocityZ, SpriteProvider spriteProvider) {
+    public SoundParticle(ClientWorld world, double x, double y, double z, double velocityX, double velocityY, double velocityZ, SpriteProvider spriteProvider, int color) {
         super(world, x, y, z, velocityX, velocityY, velocityZ);
         this.spriteProvider = spriteProvider;
         this.setSpriteForAge(spriteProvider);
-
+        //Testing
+        Color tempColor = Color.BLUE;
+        this.green = tempColor.getGreen();
+        //this.sheet=new TextureSheet(spriteProvider);
+        //Tessellator.getInstance().getBufferBuilder().
+        this.red = tempColor.getRed();
+        this.blue = tempColor.getBlue();
         this.maxAge = 10;
         this.collidesWithWorld = false;
     }
 
     @Override
     public void buildGeometry(VertexConsumer vertexConsumer, Camera camera, float tickDelta) {
-        if (camera.getFocusedEntity() instanceof PlayerEntity) {
+        if (camera.getFocusedEntity() instanceof PlayerEntity player && player.getComponent(PossessionComponent.KEY).isPossessionOngoing()) {
+            //TODO Disabled for testing if (player.getComponent(PossessionComponent.KEY).getHost() instanceof WardenEntity) {
             VertexConsumer actualConsumer = soundVertexConsumerProvider.getBuffer(RequiemRenderPhases.GHOST_PARTICLE_LAYER);
 
             RenderSystem.disableDepthTest();
@@ -112,9 +127,6 @@ public class SoundParticle extends SpriteBillboardParticle {
             int l = 15728880;
             float alpha = 1;
 
-            float red = 1f;
-            float green = 1f;
-            float blue = 1f;
             actualConsumer.vertex(Vec3fs[0].x(), Vec3fs[0].y(), Vec3fs[0].z()).uv(maxU, maxV).color(red, green, blue, alpha).light(l).next();
             actualConsumer.vertex(Vec3fs[1].x(), Vec3fs[1].y(), Vec3fs[1].z()).uv(maxU, minV).color(red, green, blue, alpha).light(l).next();
             actualConsumer.vertex(Vec3fs[2].x(), Vec3fs[2].y(), Vec3fs[2].z()).uv(minU, minV).color(red, green, blue, alpha).light(l).next();
@@ -124,7 +136,7 @@ public class SoundParticle extends SpriteBillboardParticle {
             soundVertexConsumerProvider.draw();
             RenderSystem.enableDepthTest();
             RenderSystem.depthFunc(GL11.GL_LEQUAL);
-
+        //}
         } else {
             this.markDead();
         }
@@ -148,19 +160,20 @@ public class SoundParticle extends SpriteBillboardParticle {
     }
 
     @ClientOnly
-    public static class Factory implements ParticleFactory<DefaultParticleType> {
-        private final SpriteProvider spriteProvider;
+    public static class Factory implements ParticleFactory<RequiemSoundParticleEffect> {
+        private final SpriteProvider factorySpriteProvider;
 
         public Factory(SpriteProvider spriteProvider) {
-            this.spriteProvider = spriteProvider;
+            this.factorySpriteProvider = spriteProvider;
         }
 
-        public Particle createParticle(DefaultParticleType defaultParticleType, ClientWorld clientWorld, double d, double e, double f, double g, double h, double i) {
-            return new SoundParticle(clientWorld, d, e, f, g, h, i, this.spriteProvider);
+        @Override
+        public Particle createParticle(RequiemSoundParticleEffect particleEffect, ClientWorld clientWorld, double d, double e, double f, double g, double h, double i) {
+            return new SoundParticle(clientWorld, d, e, f, g, h, i, this.factorySpriteProvider, particleEffect.getColor());
         }
     }
 
-    //Stolen using Linkie
+    //Stolen using Linkie from Minecraft itself as it doesn't exist on JOML Quaternions
     public void hamiltonProduct(Quaternionf first, Quaternionf second) {
         float var2 = first.x();
         float var3 = first.y();

@@ -36,22 +36,22 @@ package ladysnake.requiem.common.entity.warden;
 
 import dev.onyxstudios.cca.api.v3.component.ComponentKey;
 import dev.onyxstudios.cca.api.v3.component.ComponentRegistry;
+import dev.onyxstudios.cca.api.v3.component.TransientComponent;
 import dev.onyxstudios.cca.api.v3.component.sync.AutoSyncedComponent;
-import dev.onyxstudios.cca.api.v3.entity.PlayerComponent;
 import ladysnake.requiem.Requiem;
 import ladysnake.requiem.api.v1.possession.PossessionComponent;
 import ladysnake.requiem.core.RequiemCore;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.warden.WardenEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-public class WardenSensedComponent implements PlayerComponent<WardenSensedComponent>, AutoSyncedComponent {
+public class WardenSensedComponent implements TransientComponent, AutoSyncedComponent {
     /*TODO proper implementation of syncing
      */
     public static final ComponentKey<WardenSensedComponent> KEY = ComponentRegistry.getOrCreate(RequiemCore.id("warden_sensed"), WardenSensedComponent.class);
@@ -67,13 +67,13 @@ public class WardenSensedComponent implements PlayerComponent<WardenSensedCompon
     }
 
     @Override
-    public void readFromNbt(NbtCompound nbt) {
-        int size = nbt.getInt("list_size");
+    public void applySyncPacket(PacketByteBuf buf) {
+        int size = buf.readInt();
         if (size > 0) {
             Set<UUID> uuids = new HashSet<>();
             for (int i=0; i < size; i++) {
                 try {
-                    uuids.add(nbt.getUuid("warden_target_"+i));
+                    uuids.add(buf.readUuid());
                 } catch (Exception error) {
                     Requiem.LOGGER.error("Could not read element {}","warden_target_"+i );
                     Requiem.LOGGER.error("Reason: {}", error.getMessage());
@@ -83,17 +83,14 @@ public class WardenSensedComponent implements PlayerComponent<WardenSensedCompon
         }
     }
 
-
     @Override
-    public void writeToNbt(NbtCompound nbt) {
+    public void writeSyncPacket(PacketByteBuf buf, ServerPlayerEntity recipient) {
+
         //TODO think about a better data format for this
         //MC only seems to have a ByteArray as closest, no UUIDArray or even just StringArray in NBTCompound
-        nbt.putInt("list_size", entities.size());
+        buf.writeInt(entities.size());
         for (int i = 0; i < entities.size(); i++) {
-            nbt.putUuid(
-                "warden_target_"+i,
-                entities.stream().toList().get(i)
-            );
+            buf.writeUuid(entities.stream().toList().get(i));
         }
     }
 

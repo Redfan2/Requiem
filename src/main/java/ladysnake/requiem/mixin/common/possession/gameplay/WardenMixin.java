@@ -34,11 +34,12 @@
  */
 package ladysnake.requiem.mixin.common.possession.gameplay;
 
-import ladysnake.requiem.Requiem;
 import ladysnake.requiem.common.entity.internal.WardenExtension;
 import ladysnake.requiem.common.entity.warden.WardenSensedComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.warden.WardenEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -46,8 +47,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import org.quiltmc.loader.api.QuiltLoader;
-import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -58,7 +57,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.HashSet;
 import java.util.Set;
 
-@Debug(export = true)
 @Mixin(WardenEntity.class)
 public abstract class WardenMixin extends HostileEntity implements WardenExtension {
 
@@ -99,22 +97,15 @@ public abstract class WardenMixin extends HostileEntity implements WardenExtensi
     @Inject(
         method = "mobTick",
         at=@At(
-            target = "Lnet/minecraft/entity/mob/warden/WardenEntity;syncAngerLevel()V",
-            value= "INVOKE"
+            value= "TAIL"
         )
     )
     public void tickEverySecond(CallbackInfo ci) {
-            //TODO: by:Redfan2: replace by Mixin
-            //this.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS,1,0,false,false,false),this);
-
-
-            if (age%200==0 ) {
-                this.requiem$syncSensedEntities();
-                if (QuiltLoader.isDevelopmentEnvironment()) {
-                    Requiem.LOGGER.info("Existing Players: {}", requiem$getVisiblePlayers());
-                    Requiem.LOGGER.info("Existing Entities: {}", requiem$getVisibleEntities().toString());
-                }
-            }
+        //TODO: by:Redfan2: replace by Mixin
+        this.addStatusEffect(new StatusEffectInstance(StatusEffects.BLINDNESS,-1,5,false,false,false),this);
+        if (age % 200 == 0 ) {
+            this.requiem$syncSensedEntities();
+        }
     }
 
     @Unique
